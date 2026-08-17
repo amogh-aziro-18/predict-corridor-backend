@@ -1,0 +1,29 @@
+# Local infrastructure for Sprint 2+
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: predict_corridor
+    ports:
+      - "5432:5432"
+    volumes:
+      - predict_corridor_pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  hivemq:
+    image: hivemq/hivemq-ce:2024.9
+    ports:
+      - "1883:1883"
+      - "8080:8080"
+    profiles:
+      - mqtt
+
+volumes:
+  predict_corridor_pg:
