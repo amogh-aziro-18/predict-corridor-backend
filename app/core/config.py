@@ -45,6 +45,54 @@ class Settings(BaseSettings):
     openai_api_key: str = Field(default="", alias="OPENAI_API_KEY")
     agent_llm_model: str = Field(default="gpt-4o-mini", alias="AGENT_LLM_MODEL")
 
+    # External weather (Phase 8A — Open-Meteo keyless POC).
+    weather_provider: str = Field(default="open_meteo", alias="WEATHER_PROVIDER")
+    open_meteo_base_url: str = Field(
+        default="https://api.open-meteo.com/v1/forecast",
+        alias="OPEN_METEO_BASE_URL",
+    )
+    weather_cache_ttl_seconds: int = Field(default=600, alias="WEATHER_CACHE_TTL_SECONDS")
+    weather_forecast_cache_ttl_seconds: int = Field(
+        default=1800,
+        alias="WEATHER_FORECAST_CACHE_TTL_SECONDS",
+    )
+    weather_http_timeout_seconds: float = Field(default=15.0, alias="WEATHER_HTTP_TIMEOUT_SECONDS")
+
+    # Operational corridor location (Phase 14.12 — Delhi, India).
+    # Weather + environment providers query these coordinates (not Bangalore).
+    corridor_city: str = Field(default="Delhi", alias="CORRIDOR_CITY")
+    corridor_country: str = Field(default="India", alias="CORRIDOR_COUNTRY")
+    corridor_display_name: str = Field(
+        default="Delhi, India",
+        alias="CORRIDOR_DISPLAY_NAME",
+    )
+    corridor_latitude: float = Field(default=28.6139, alias="CORRIDOR_LATITUDE")
+    corridor_longitude: float = Field(default=77.2090, alias="CORRIDOR_LONGITUDE")
+    corridor_timezone_hint: str = Field(
+        default="Asia/Kolkata",
+        alias="CORRIDOR_TIMEZONE_HINT",
+    )
+
+    # External air quality / environment observations (Phase 9B — Open-Meteo keyless POC).
+    # AQI standard remains provider US AQI unless a CPCB-capable provider is configured.
+    # Never relabel US AQI as Indian/CPCB AQI.
+    environment_provider: str = Field(
+        default="open_meteo_air_quality",
+        alias="ENVIRONMENT_PROVIDER",
+    )
+    open_meteo_air_quality_base_url: str = Field(
+        default="https://air-quality-api.open-meteo.com/v1/air-quality",
+        alias="OPEN_METEO_AIR_QUALITY_BASE_URL",
+    )
+    environment_cache_ttl_seconds: int = Field(
+        default=600,
+        alias="ENVIRONMENT_CACHE_TTL_SECONDS",
+    )
+    environment_http_timeout_seconds: float = Field(
+        default=15.0,
+        alias="ENVIRONMENT_HTTP_TIMEOUT_SECONDS",
+    )
+
     @property
     def enabled_utility_kinds(self) -> list[str]:
         return [k.strip().lower() for k in self.enabled_utilities.split(",") if k.strip()]

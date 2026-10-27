@@ -51,6 +51,15 @@ SCENARIO_RULES: dict[ScenarioKey, ScenarioRules] = {
         "pressure_monitoring_station": {
             "pressure": MetricRule(drift=-0.06, floor=0.8),
         },
+        # Zone C demo: progressive storage drawdown (degrading band 40–70).
+        "storage_tank": {
+            "tank_level": MetricRule(drift=-0.85, floor=42.0),
+            "pressure": MetricRule(drift=-0.03, floor=1.4),
+        },
+        "reservoir": {
+            "reservoir_level": MetricRule(drift=-0.7, floor=43.0),
+            "outflow": MetricRule(drift=4.0, ceiling=700.0),
+        },
     },
     ScenarioKey.PIPELINE_LEAK: {
         "reservoir": {
@@ -117,9 +126,17 @@ SCENARIO_RULES: dict[ScenarioKey, ScenarioRules] = {
             "flow_rate": MetricRule(drift=-8.0, floor=50.0),
             "pressure": MetricRule(drift=-0.05, floor=0.5),
         },
+        # Zone D demo: stronger storage collapse; float in critical band (<40).
+        "storage_tank": {
+            "tank_level": MetricRule(drift=-1.25, floor=14.0),
+            "pressure": MetricRule(drift=-0.05, floor=0.8),
+        },
+        "reservoir": {
+            "reservoir_level": MetricRule(drift=-1.05, floor=15.0),
+            "outflow": MetricRule(drift=6.0, ceiling=850.0),
+        },
     },
 }
-
 
 def apply_rule(value: float, rule: MetricRule, *, intensity: float) -> float:
     """Apply one gradual adjustment step at the given scenario intensity."""
@@ -128,7 +145,14 @@ def apply_rule(value: float, rule: MetricRule, *, intensity: float) -> float:
 
     adjusted = value
     if rule.drift:
-        adjusted += rule.drift * intensity
+        effective_drift = rule.drift
+        # Taper negative level/pressure drift as values approach the floor so
+        # telemetry keeps moving instead of freezing on the clamp.
+        if rule.floor is not None and rule.drift < 0:
+            distance = value - rule.floor
+            if distance < 10.0:
+                effective_drift = rule.drift * max(0.12, distance / 10.0)
+        adjusted += effective_drift * intensity
 
     if rule.target is not None:
         adjusted += (rule.target - adjusted) * rule.pull_rate * intensity

@@ -108,23 +108,31 @@ class TelemetryRepository:
             params["end"] = end
 
         where_sql = ("WHERE " + " AND ".join(clauses)) if clauses else ""
+        # Take the NEWEST ``limit`` rows, then return them chronological (ASC).
+        # ASC+LIMIT alone would return the OLDEST window and drop live telemetry
+        # once history exceeds the limit — breaking ML inference freshness.
         sql = text(
             f"""
-            SELECT t.id,
-                   t.sensor_id,
-                   s.asset_id,
-                   a.name AS asset_name,
-                   t.metric_key,
-                   t.value,
-                   t.unit,
-                   t.quality,
-                   t.recorded_at
-            FROM telemetry t
-            JOIN sensors s ON s.id = t.sensor_id
-            JOIN assets a ON a.id = s.asset_id
-            {where_sql}
-            ORDER BY t.recorded_at ASC
-            LIMIT :limit
+            WITH newest AS (
+                SELECT t.id,
+                       t.sensor_id,
+                       s.asset_id,
+                       a.name AS asset_name,
+                       t.metric_key,
+                       t.value,
+                       t.unit,
+                       t.quality,
+                       t.recorded_at
+                FROM telemetry t
+                JOIN sensors s ON s.id = t.sensor_id
+                JOIN assets a ON a.id = s.asset_id
+                {where_sql}
+                ORDER BY t.recorded_at DESC
+                LIMIT :limit
+            )
+            SELECT id, sensor_id, asset_id, asset_name, metric_key, value, unit, quality, recorded_at
+            FROM newest
+            ORDER BY recorded_at ASC
             """
         )
         rows = self._db.execute(sql, params).mappings().all()

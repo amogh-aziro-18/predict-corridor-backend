@@ -53,4 +53,46 @@ def maintenance_model_status(
     db: Session = Depends(db_dep),
 ) -> MaintenanceModelStatusOut:
     result = PredictiveMaintenanceService(db).status()
+    # Include Power transformer PdM in the multi-model snapshot without
+    # coupling Water training/inference to Power.
+    from app.services.power_predictive_maintenance_service import (
+        PowerPredictiveMaintenanceService,
+    )
+
+    power_status = PowerPredictiveMaintenanceService(db).status()
+    models = list(result.get("models") or [])
+    models.append(
+        {
+            "model": power_status["model"],
+            "model_version": power_status.get("model_version"),
+            "artifact_exists": power_status["artifact_exists"],
+            "artifact_name": power_status["artifact_path"],
+            "inference": power_status["inference"],
+        }
+    )
+    from app.services.power_forecast_service import PowerForecastService
+
+    forecast_status = PowerForecastService(db).status()
+    models.append(
+        {
+            "model": forecast_status["model"],
+            "model_version": forecast_status.get("model_version"),
+            "artifact_exists": forecast_status["artifact_exists"],
+            "artifact_name": forecast_status["artifact_path"],
+            "inference": forecast_status["inference"],
+        }
+    )
+    from app.services.gas_forecast_service import GasForecastService
+
+    gas_forecast_status = GasForecastService(db).status()
+    models.append(
+        {
+            "model": gas_forecast_status["model"],
+            "model_version": gas_forecast_status.get("model_version"),
+            "artifact_exists": gas_forecast_status["artifact_exists"],
+            "artifact_name": gas_forecast_status["artifact_path"],
+            "inference": gas_forecast_status["inference"],
+        }
+    )
+    result["models"] = models
     return MaintenanceModelStatusOut.model_validate(result)

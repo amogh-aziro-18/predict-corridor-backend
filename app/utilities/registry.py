@@ -43,14 +43,19 @@ def bootstrap_plugins(enabled_kinds: list[str]) -> UtilityRegistry:
     """
     Register plugins listed in configuration.
 
-    Only Water is implemented in Sprint 1; other kinds are ignored with a warning
-    so future utilities can be enabled via config once their packages exist.
+    Water, Power, Gas, and Communications are implemented.
+    Other kinds are ignored with a warning.
     """
+    from app.utilities.communications.plugin import CommunicationsPlugin
+    from app.utilities.gas.plugin import GasPlugin
+    from app.utilities.power.plugin import PowerPlugin
     from app.utilities.water.plugin import WaterPlugin
 
     available: dict[str, type[UtilityPlugin]] = {
         "water": WaterPlugin,
-        # Future: "power": PowerPlugin, "gas": GasPlugin, ...
+        "power": PowerPlugin,
+        "gas": GasPlugin,
+        "communications": CommunicationsPlugin,
     }
 
     for kind in enabled_kinds:

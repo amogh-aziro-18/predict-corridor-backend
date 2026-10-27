@@ -31,8 +31,20 @@ class AssetOut(BaseModel):
     health: float
     health_score: float
     risk: str
-    weather_exposure: str = Field(serialization_alias="weatherExposure")
-    flood_risk: str = Field(serialization_alias="floodRisk")
+    weather_exposure: str = Field(
+        serialization_alias="weatherExposure",
+        description=(
+            "Static seed/catalog metadata for design-time exposure classification. "
+            "Not live weather risk and not updated from external weather APIs."
+        ),
+    )
+    flood_risk: str = Field(
+        serialization_alias="floodRisk",
+        description=(
+            "Static seed/catalog metadata for planning exposure. "
+            "Not live flood probability and not weather-derived."
+        ),
+    )
     criticality: str
     backup: str
     recovery_priority: int = Field(serialization_alias="recoveryPriority")

@@ -16,9 +16,12 @@ router = APIRouter()
 def list_assets(
     zone: str | None = Query(default=None, description="Zone filter: A, zone-a, Zone A"),
     utility: str | None = Query(default=None, description="Utility kind filter, e.g. water"),
+    asset_type: str | None = Query(
+        default=None, description="Asset type filter, e.g. pump_station"
+    ),
     db: Session = Depends(db_dep),
 ) -> list[AssetOut]:
-    return AssetService(db).list_assets(zone=zone, utility=utility)
+    return AssetService(db).list_assets(zone=zone, utility=utility, asset_type=asset_type)
 
 
 @router.get("/assets/{asset_id}", response_model=AssetOut, response_model_by_alias=True)

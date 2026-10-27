@@ -23,3 +23,13 @@ class ValidationAppError(AppError):
 class PluginError(AppError):
     def __init__(self, message: str) -> None:
         super().__init__(message, code="plugin_error")
+
+
+class WeatherUnavailableError(AppError):
+    def __init__(self, message: str = "Weather data unavailable") -> None:
+        super().__init__(message, code="weather_unavailable")
+
+
+class EnvironmentUnavailableError(AppError):
+    def __init__(self, message: str = "Environment data unavailable") -> None:
+        super().__init__(message, code="environment_unavailable")

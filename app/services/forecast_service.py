@@ -183,9 +183,11 @@ class ForecastService:
         artifact = self._ensure_artifact(zone_id=zone_id)
 
         # Current demand = latest resampled observation from PostgreSQL.
+        # Use the same limit as training so ASC history queries are not truncated
+        # to an outdated early window.
         series, meta = self._datasets.build_demand_series(
             zone_id=zone_id,
-            limit=5_000,
+            limit=100_000,
             resample=True,
         )
         current_demand = float(series["demand"].iloc[-1]) if len(series) else None
@@ -219,11 +221,34 @@ class ForecastService:
                 "aggregation": meta.get("aggregation"),
             },
             "zone_id": zone_id,
+            "recent_actual": self._recent_actual_hourly(series, hours=24),
         }
 
     def demand_forecast(self, *, zone_id: str | None = None) -> dict[str, Any]:
         """Public façade used by API routers."""
         return self.predict(zone_id=zone_id, hours=48)
+
+    def status(self, *, zone_id: str | None = None) -> dict[str, Any]:
+        """Artifact readiness without running inference."""
+        path = self._artifact_path_for_zone(zone_id)
+        artifact = load_artifact(path)
+        if artifact is None and zone_id is not None:
+            artifact = load_artifact(PROPHET_WATER_PATH)
+            path = PROPHET_WATER_PATH
+        exists = artifact is not None
+        return {
+            "model": "prophet_demand",
+            "model_version": artifact.model_version if artifact else None,
+            "artifact_exists": exists,
+            "artifact_path": str(path),
+            "inference": "available" if exists else "train_required",
+            "last_training_time": artifact.trained_at if artifact else None,
+            "training_window": _serialize_window(artifact.training_window)
+            if artifact
+            else {},
+            "demand_source": artifact.demand_source if artifact else {},
+            "zone_id": zone_id,
+        }
 
     # ------------------------------------------------------------------
     # Internals
@@ -334,6 +359,35 @@ class ForecastService:
             "level": level,
             "note": "80% Prophet uncertainty interval; short history may lower confidence",
         }
+
+    @staticmethod
+    def _recent_actual_hourly(series: pd.DataFrame, *, hours: int = 24) -> list[dict[str, Any]]:
+        """Hourly mean of real demand series for charting (no fabricated points)."""
+        if series is None or series.empty or "time" not in series.columns:
+            return []
+        frame = series.copy()
+        frame["time"] = pd.to_datetime(frame["time"], utc=True)
+        frame = frame.set_index("time")[["demand"]].astype(float)
+        hourly = frame.resample("1h").mean().dropna()
+        if hourly.empty:
+            return []
+        end = hourly.index.max()
+        cutoff = end - pd.Timedelta(hours=max(hours, 1))
+        hourly = hourly[hourly.index >= cutoff]
+        points: list[dict[str, Any]] = []
+        for ts, row in hourly.iterrows():
+            stamp = pd.Timestamp(ts)
+            if stamp.tzinfo is None:
+                stamp = stamp.tz_localize("UTC")
+            else:
+                stamp = stamp.tz_convert("UTC")
+            points.append(
+                {
+                    "timestamp": stamp.to_pydatetime(),
+                    "demand": round(float(row["demand"]), 2),
+                }
+            )
+        return points
 
 
 def _serialize_window(window: dict[str, Any]) -> dict[str, Any]:

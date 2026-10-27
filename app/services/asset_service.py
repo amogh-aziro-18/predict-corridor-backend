@@ -21,6 +21,7 @@ class AssetService:
         utility: str | None = None,
         zone: str | None = None,
         corridor_id: str | None = None,
+        asset_type: str | None = None,
     ) -> list[AssetOut]:
         utility_kind = normalize_utility_kind(utility)
         zone_id = normalize_zone_id(zone)
@@ -28,6 +29,7 @@ class AssetService:
             utility_kind=utility_kind,
             zone_id=zone_id,
             corridor_id=corridor_id,
+            asset_type=asset_type.strip() if asset_type else None,
         )
         return [asset_to_out(a) for a in rows]
 

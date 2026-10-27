@@ -107,3 +107,9 @@ class WaterService:
 
         asset.profile = profile
         self._db.flush()
+
+        # Phase 12: persist operator Alerts from Water threshold codes (set-diff).
+        # Does not change dashboard active_alerts KPI (still derived from evaluate_alerts).
+        from app.utilities.water.alert_producer import sync_water_asset_alerts
+
+        sync_water_asset_alerts(self._db, asset=asset, codes=alerts)

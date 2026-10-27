@@ -22,6 +22,7 @@ class ScenarioRepository:
                 id=self.ROW_ID,
                 scenario_key=ScenarioKey.NORMAL.value,
                 intensity=1.0,
+                zone_scenarios={},
             )
             self._db.add(row)
             self._db.commit()

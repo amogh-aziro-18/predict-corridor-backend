@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 
 from app.core.errors import NotFoundError, ValidationAppError
 from app.domain.repositories import AssetRepository
-from app.ml.artifacts import PUMP_XGBOOST_PATH
+from app.ml.artifacts import PROPHET_WATER_PATH, PUMP_XGBOOST_PATH
 from app.ml.maintenance.dataset import MaintenanceDatasetBuilder
 from app.ml.maintenance.feature_builder import MaintenanceFeatureBuilder
 from app.ml.maintenance.labeling import add_maintenance_labels, label_distribution
@@ -20,6 +20,7 @@ from app.ml.maintenance.xgboost_model import (
     predict_xgboost,
     train_xgboost,
 )
+from app.ml.forecasting.prophet_model import load_artifact as load_prophet_artifact
 
 
 class PredictiveMaintenanceService:
@@ -134,7 +135,7 @@ class PredictiveMaintenanceService:
         return {
             "status": "trained",
             "model_version": artifact.model_version,
-            "artifact_path": str(PUMP_XGBOOST_PATH),
+            "artifact_path": PUMP_XGBOOST_PATH.name,
             "trained_at": artifact.trained_at,
             "training_window": artifact.training_window,
             "rows": int(len(labelled)),
@@ -165,14 +166,33 @@ class PredictiveMaintenanceService:
     def status(self) -> dict[str, Any]:
         """Model artifact and training metadata without running inference."""
         artifact = load_artifact(PUMP_XGBOOST_PATH)
+        prophet = load_prophet_artifact(PROPHET_WATER_PATH)
+        xgb_exists = artifact is not None
+        prophet_exists = prophet is not None
         return {
             "model": "pump_xgboost",
             "model_version": artifact.model_version if artifact else None,
-            "artifact_exists": artifact is not None,
-            "artifact_path": str(PUMP_XGBOOST_PATH),
+            "artifact_exists": xgb_exists,
+            "artifact_path": PUMP_XGBOOST_PATH.name,
             "last_training_time": artifact.trained_at if artifact else None,
             "training_window": artifact.training_window if artifact else {},
             "training_metadata": artifact.training_metadata if artifact else {},
+            "models": [
+                {
+                    "model": "prophet_demand",
+                    "model_version": prophet.model_version if prophet else None,
+                    "artifact_exists": prophet_exists,
+                    "artifact_name": PROPHET_WATER_PATH.name,
+                    "inference": "available" if prophet_exists else "train_required",
+                },
+                {
+                    "model": "pump_xgboost",
+                    "model_version": artifact.model_version if artifact else None,
+                    "artifact_exists": xgb_exists,
+                    "artifact_name": PUMP_XGBOOST_PATH.name,
+                    "inference": "available" if xgb_exists else "train_required",
+                },
+            ],
         }
 
     def _predict(self, *, asset_id: str | None) -> list[dict[str, Any]]:
@@ -201,11 +221,15 @@ class PredictiveMaintenanceService:
                 {
                     "asset_id": str(row["asset_id"]),
                     "asset_name": str(row.get("asset_name") or row["asset_id"]),
-                    "affected_zone": str(row.get("zone") or ""),
+                    "affected_zone": str(row.get("zone") or "") or None,
                     "maintenance_risk": round(probability, 4),
                     "risk_level": self._risk_level(probability),
-                    "confidence": round(0.5 + abs(probability - 0.5), 4),
+                    # Primary confidence for OI/API consumers = risk probability.
+                    "confidence": round(probability, 4),
+                    # Distance from 0.5 — not accuracy; kept for diagnostics only.
+                    "model_certainty": round(0.5 + abs(probability - 0.5), 4),
                     "predicted_failure_days": self._remaining_useful_life(probability),
+                    "horizon_basis": "probability_mapped",
                     "top_contributing_features": self._top_contributors(
                         artifact.feature_names,
                         contributions[row_index],

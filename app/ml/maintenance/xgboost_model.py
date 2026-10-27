@@ -23,6 +23,8 @@ from app.ml.common.constants import MODEL_VERSION_XGBOOST
 from app.ml.maintenance.labeling import LABEL_COLUMN, label_distribution
 
 
+# Telemetry-derived numerics only. Excludes health / scenario_intensity to avoid
+# label leakage and scenario shortcuts (Phase 14.6).
 NUMERIC_FEATURES: tuple[str, ...] = (
     "pressure",
     "flow_rate",
@@ -46,12 +48,10 @@ NUMERIC_FEATURES: tuple[str, ...] = (
     "flow_rate_of_change",
     "pump_utilization",
     "operating_duration_minutes",
-    "health",
-    "scenario_intensity",
 )
 
-CATEGORICAL_FEATURES: tuple[str, ...] = ("status", "zone", "criticality")
-
+# Criticality only — not zone/status (avoids zone and operational-state shortcuts).
+CATEGORICAL_FEATURES: tuple[str, ...] = ("criticality",)
 
 @dataclass
 class XGBoostArtifact:

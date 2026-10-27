@@ -2,6 +2,11 @@
 
 from __future__ import annotations
 
+from app.core.ssl_trust import configure_os_ssl_trust
+
+# Must run before httpx/Open-Meteo outbound HTTPS on corporate Windows hosts.
+configure_os_ssl_trust()
+
 from contextlib import asynccontextmanager
 from typing import Any
 

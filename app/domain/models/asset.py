@@ -13,6 +13,7 @@ from app.db.session import Base
 
 if TYPE_CHECKING:
     from app.domain.models.sensor import Sensor
+    from app.domain.models.work_order import WorkOrder
     from app.domain.models.zone import Zone
 
 
@@ -44,7 +45,11 @@ class Asset(Base):
     health: Mapped[float] = mapped_column(Float, nullable=False, default=100.0)
     status: Mapped[str] = mapped_column(String(32), nullable=False, default="operational")
     risk: Mapped[str] = mapped_column(String(32), nullable=False, default="low")
+    # Static catalog metadata assigned at seed time — NOT live weather-derived risk.
+    # See weather impact assessment (Phase 8C+) for dynamic environmental signals.
     weather_exposure: Mapped[str] = mapped_column(String(32), nullable=False, default="low")
+    # Static catalog metadata for design-time / planning exposure — NOT live flood
+    # probability and NOT updated from Open-Meteo or telemetry.
     flood_risk: Mapped[str] = mapped_column(String(32), nullable=False, default="low")
     criticality: Mapped[str] = mapped_column(String(32), nullable=False, default="medium")
     backup: Mapped[str] = mapped_column(String(32), nullable=False, default="none")
@@ -69,3 +74,4 @@ class Asset(Base):
 
     zone: Mapped[Zone] = relationship("Zone", back_populates="assets")
     sensors: Mapped[list[Sensor]] = relationship("Sensor", back_populates="asset")
+    work_orders: Mapped[list[WorkOrder]] = relationship("WorkOrder", back_populates="asset")

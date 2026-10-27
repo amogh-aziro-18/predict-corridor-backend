@@ -54,3 +54,72 @@ class TelemetryQuality(StrEnum):
     GOOD = "good"
     UNCERTAIN = "uncertain"
     BAD = "bad"
+
+
+class WorkOrderStatus(StrEnum):
+    OPEN = "open"
+    ASSIGNED = "assigned"
+    IN_PROGRESS = "in_progress"
+    COMPLETED = "completed"
+    CLOSED = "closed"
+
+
+class WorkOrderSource(StrEnum):
+    RECOMMENDATION = "recommendation"
+    MANUAL = "manual"
+    PREDICTIVE_MAINTENANCE = "predictive_maintenance"
+    SIMULATION = "simulation"
+
+
+class TechnicianAvailability(StrEnum):
+    AVAILABLE = "available"
+    ON_TASK = "on_task"
+    EN_ROUTE = "en_route"
+    OFF_SHIFT = "off_shift"
+
+
+class IncidentStatus(StrEnum):
+    OPEN = "open"
+    ACKNOWLEDGED = "acknowledged"
+    IN_PROGRESS = "in_progress"
+    RESOLVED = "resolved"
+    CLOSED = "closed"
+
+
+class IncidentSource(StrEnum):
+    MANUAL = "manual"
+    RECOMMENDATION = "recommendation"
+
+
+class IncidentScope(StrEnum):
+    CORRIDOR = "corridor"
+    ZONE = "zone"
+    ASSET = "asset"
+
+
+class AlertStatus(StrEnum):
+    OPEN = "open"
+    ACKNOWLEDGED = "acknowledged"
+    RESOLVED = "resolved"
+
+
+class AlertSource(StrEnum):
+    TELEMETRY = "telemetry"
+    WEATHER = "weather"
+    ENVIRONMENT = "environment"
+    RESILIENCE = "resilience"
+    MAINTENANCE = "maintenance"
+    SCENARIO = "scenario"
+    MANUAL = "manual"
+
+
+class AlertScope(StrEnum):
+    CORRIDOR = "corridor"
+    ZONE = "zone"
+    ASSET = "asset"
+
+
+class DependencyType(StrEnum):
+    """Controlled dependency edge kinds (Phase 16.0 — supplies only)."""
+
+    SUPPLIES = "supplies"

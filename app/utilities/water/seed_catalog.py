@@ -97,6 +97,8 @@ def _asset(
         "status": status,
         "health": health,
         "risk": risk,
+        # Static seed metadata — zone-based defaults for POC planning views only.
+        # Not live weather or flood intelligence (see Asset model docstrings).
         "weather_exposure": "medium" if zone in {"zone-c"} else "low",
         "flood_risk": "high" if zone in {"zone-c"} else "medium" if zone == "zone-b" else "low",
         "criticality": criticality,

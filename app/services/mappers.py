@@ -47,6 +47,7 @@ def asset_to_out(asset: Asset) -> AssetOut:
         health=asset.health,
         health_score=asset.health,
         risk=asset.risk,
+        # Static seed metadata — not live weather or flood intelligence.
         weather_exposure=asset.weather_exposure,
         flood_risk=asset.flood_risk,
         criticality=asset.criticality,

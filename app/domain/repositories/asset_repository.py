@@ -21,6 +21,7 @@ class AssetRepository:
         utility_kind: str | None = None,
         zone_id: str | None = None,
         corridor_id: str | None = None,
+        asset_type: str | None = None,
     ) -> list[Asset]:
         stmt = select(Asset).order_by(Asset.id)
         if utility_kind:
@@ -29,6 +30,8 @@ class AssetRepository:
             stmt = stmt.where(Asset.zone_id == zone_id)
         if corridor_id:
             stmt = stmt.where(Asset.corridor_id == corridor_id)
+        if asset_type:
+            stmt = stmt.where(Asset.type == asset_type)
         return list(self._db.scalars(stmt).all())
 
     def count(

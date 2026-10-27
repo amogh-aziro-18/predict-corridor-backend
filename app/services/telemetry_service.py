@@ -19,6 +19,9 @@ from app.api.schemas.telemetry import (
 from app.core.errors import NotFoundError, ValidationAppError
 from app.domain.models import Sensor, Telemetry
 from app.domain.repositories import AssetRepository, SensorRepository, TelemetryRepository
+from app.services.communications_service import CommunicationsService
+from app.services.gas_service import GasService
+from app.services.power_service import PowerService
 from app.services.water_service import WaterService
 
 
@@ -37,6 +40,9 @@ class TelemetryService:
         self._sensors = SensorRepository(db)
         self._assets = AssetRepository(db)
         self._water = WaterService(db)
+        self._power = PowerService(db)
+        self._gas = GasService(db)
+        self._communications = CommunicationsService(db)
 
     def persist_envelope(
         self,
@@ -46,6 +52,9 @@ class TelemetryService:
         envelope: TelemetryEnvelope,
         utility_kind: str | None = None,
         commit: bool = True,
+        evaluate_power: bool = True,
+        evaluate_gas: bool = True,
+        evaluate_communications: bool = True,
     ) -> TelemetryOut:
         asset = self._assets.get(asset_id)
         if asset is None:
@@ -85,6 +94,27 @@ class TelemetryService:
 
         if asset.utility_kind == "water":
             self._water.sync_profile_metric(asset_id, key, float(envelope.value))
+        elif asset.utility_kind == "power":
+            self._power.sync_profile_metric(
+                asset_id,
+                key,
+                float(envelope.value),
+                evaluate=evaluate_power,
+            )
+        elif asset.utility_kind == "gas":
+            self._gas.sync_profile_metric(
+                asset_id,
+                key,
+                float(envelope.value),
+                evaluate=evaluate_gas,
+            )
+        elif asset.utility_kind == "communications":
+            self._communications.sync_profile_metric(
+                asset_id,
+                key,
+                float(envelope.value),
+                evaluate=evaluate_communications,
+            )
 
         if commit:
             self._db.commit()

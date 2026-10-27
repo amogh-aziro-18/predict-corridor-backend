@@ -12,10 +12,12 @@ class WaterTelemetryGenerator:
     Produces slowly evolving metric values.
 
     Uses a small-step random walk with light mean reversion so tanks drift
-    like ``78 → 77.8 → 77.5`` instead of jumping randomly.
+    like ``83.2 → 83.6 → 82.9`` instead of jumping randomly or freezing.
     """
 
     def __init__(self, *, seed: int | None = None) -> None:
+        # None → non-deterministic per process so continuous runs do not
+        # replay the exact same delta sequence every tick when re-instantiated.
         self._rng = random.Random(seed)
         # In-memory last values keyed by ``asset_id:metric_key``.
         self._state: dict[str, float] = {}
@@ -54,9 +56,15 @@ class WaterTelemetryGenerator:
             base = current if current is not None else self._default(metric_key)
 
         step = self._step(metric_key)
-        # Random walk + gentle pull toward default (mean reversion).
         target = self._default(metric_key)
-        pull = (target - base) * 0.02
+        # Stronger pressure recovery toward healthy setpoint; moderate for levels.
+        if metric_key == "pressure":
+            pull_strength = 0.08
+        elif metric_key in {"tank_level", "reservoir_level"}:
+            pull_strength = 0.025
+        else:
+            pull_strength = 0.02
+        pull = (target - base) * pull_strength
         delta = self._rng.uniform(-step, step) + pull
         value = self._clamp(metric_key, base + delta)
         value = round(value, 2)
@@ -90,9 +98,9 @@ class WaterTelemetryGenerator:
     def _default(self, metric_key: str) -> float:
         return {
             "flow_rate": 500.0,
-            "pressure": 3.0,
-            "tank_level": 70.0,
-            "reservoir_level": 75.0,
+            "pressure": 3.1,
+            "tank_level": 83.0,
+            "reservoir_level": 81.0,
             "inflow": 400.0,
             "outflow": 380.0,
             "pump_speed": 1450.0,
@@ -103,12 +111,12 @@ class WaterTelemetryGenerator:
         }.get(metric_key, 1.0)
 
     def _step(self, metric_key: str) -> float:
-        """Max absolute change per tick — kept small for natural drift."""
+        """Max absolute change per tick — sized for visible demo motion."""
         return {
             "flow_rate": 8.0,
-            "pressure": 0.05,
-            "tank_level": 0.35,
-            "reservoir_level": 0.25,
+            "pressure": 0.06,
+            "tank_level": 1.15,
+            "reservoir_level": 0.95,
             "inflow": 6.0,
             "outflow": 6.0,
             "pump_speed": 8.0,

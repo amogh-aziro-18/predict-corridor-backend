@@ -16,6 +16,13 @@ class ForecastPointOut(BaseModel):
     upper: float
 
 
+class ActualDemandPointOut(BaseModel):
+    """Observed demand from real telemetry (not fabricated)."""
+
+    timestamp: datetime
+    demand: float
+
+
 class ForecastHorizonsOut(BaseModel):
     next_24_hours: list[ForecastPointOut] = Field(default_factory=list)
     next_48_hours: list[ForecastPointOut] = Field(default_factory=list)
@@ -39,6 +46,8 @@ class DemandForecastOut(BaseModel):
     training_window: dict[str, Any] = Field(default_factory=dict)
     demand_source: dict[str, Any] = Field(default_factory=dict)
     zone_id: str | None = None
+    # Recent hourly actuals from PostgreSQL demand series (for charting).
+    recent_actual: list[ActualDemandPointOut] = Field(default_factory=list)
 
 
 class ForecastTrainOut(BaseModel):
@@ -49,3 +58,17 @@ class ForecastTrainOut(BaseModel):
     demand_source: dict[str, Any] = Field(default_factory=dict)
     rows: int | None = None
     trained_at: str | None = None
+
+
+class ForecastModelStatusOut(BaseModel):
+    """Prophet demand model readiness (separate from XGBoost /ml/status)."""
+
+    model: str
+    model_version: str | None = None
+    artifact_exists: bool
+    artifact_path: str
+    inference: str
+    last_training_time: datetime | None = None
+    training_window: dict[str, Any] = Field(default_factory=dict)
+    demand_source: dict[str, Any] = Field(default_factory=dict)
+    zone_id: str | None = None

@@ -64,6 +64,7 @@ class WaterAssetSimulator:
                     metric_key=metric["key"],
                     asset_type=asset.type,
                     value=float(envelope["value"]),
+                    zone_id=asset.zone_id,
                 )
                 envelope["value"] = adjusted
                 # Keep in-tick profile cache coherent for dependent metrics.
@@ -152,7 +153,7 @@ def run_continuous(
         while max_ticks is None or ticks < max_ticks:
             db = SessionLocal()
             try:
-                sim = WaterAssetSimulator(db, seed=seed)
+                sim = WaterAssetSimulator(db, seed=None)
                 if publisher is not None:
                     count = sim.publish_tick(publisher)
                 else:

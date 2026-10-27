@@ -6,10 +6,21 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from app.api.deps import db_dep
-from app.api.schemas.forecast import DemandForecastOut, ForecastTrainOut
+from app.api.schemas.forecast import (
+    DemandForecastOut,
+    ForecastModelStatusOut,
+    ForecastTrainOut,
+)
 from app.services.forecast_service import ForecastService
 
 router = APIRouter()
+
+
+@router.get("/forecasts/demand/status", response_model=ForecastModelStatusOut)
+def demand_forecast_status(db: Session = Depends(db_dep)) -> ForecastModelStatusOut:
+    """Prophet artifact readiness — does not run inference or retrain."""
+    payload = ForecastService(db).status()
+    return ForecastModelStatusOut.model_validate(payload)
 
 
 @router.get("/forecasts/demand", response_model=DemandForecastOut)
@@ -24,6 +35,18 @@ def zone_demand_forecast(zone_id: str, db: Session = Depends(db_dep)) -> DemandF
     """Zone-level water demand forecast (reuses ForecastService)."""
     payload = ForecastService(db).demand_forecast(zone_id=zone_id)
     return DemandForecastOut.model_validate(payload)
+
+
+@router.get(
+    "/forecasts/demand/zones/{zone_id}/status",
+    response_model=ForecastModelStatusOut,
+)
+def zone_demand_forecast_status(
+    zone_id: str, db: Session = Depends(db_dep)
+) -> ForecastModelStatusOut:
+    """Zone Prophet readiness with corridor artifact fallback metadata."""
+    payload = ForecastService(db).status(zone_id=zone_id)
+    return ForecastModelStatusOut.model_validate(payload)
 
 
 @router.post("/forecasts/demand/train", response_model=ForecastTrainOut)

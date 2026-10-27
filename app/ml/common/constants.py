@@ -31,4 +31,9 @@ DEFAULT_RESAMPLE_FREQ = "5min"
 DEFAULT_ROLLING_WINDOW = 12  # windows of resampled points (~1h at 5min)
 
 MODEL_VERSION_PROPHET = "prophet_water_v1"
-MODEL_VERSION_XGBOOST = "pump_xgboost_v2"
+# v3: telemetry-only model inputs (no health/status/zone/scenario leakage).
+MODEL_VERSION_XGBOOST = "pump_xgboost_v3"
+
+# Per-pump telemetry row budget when loading all stations for PdM.
+# Mirrors Power's per-transformer newest-window policy.
+INFERENCE_HISTORY_ROWS_PER_ASSET = 12_000
